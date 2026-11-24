@@ -5,7 +5,7 @@ enga mynd í img/: sækir síðuna, finnur og:image (eða fyrstu vörumynd), min
 hana í 600 px JPEG og vistar sem img/<id>.jpg. Uppfærir svo data.json þannig að
 item.img vísi í staðbundnu myndina. Keyrt af GitHub Actions.
 """
-import io, json, os, re, sys, time
+import collections, io, json, os, re, sys, time
 from urllib.parse import urljoin, urlparse
 
 import requests
@@ -16,7 +16,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, 'data.json')
 IMG = os.path.join(ROOT, 'img')
 UA = {'User-Agent': 'Mozilla/5.0 (Efnisbok image fetcher; personal design catalogue)'}
-LIMIT = int(os.environ.get('LIMIT', '400'))
+LIMIT = int(os.environ.get('LIMIT', '1200'))
 
 # slóðir sem eru flokkasíður, ekki einstakar vörur
 CATEGORY = re.compile(r'/(voruflokk|voruflokkar|categories|category|product-category|vorumerki)/|[?&]brand=|/page/\d+/?$')
@@ -64,13 +64,15 @@ def main():
     os.makedirs(IMG, exist_ok=True)
     d = json.load(open(DATA, encoding='utf-8'))
     done = tried = 0
+    # slóð sem margar vörur deila er flokkasíða: mynd þaðan á ekki við eina vöru
+    shared = {u for u, n in collections.Counter(i.get('url') for i in d['items']).items() if n > 1}
     for it in d['items']:
         local = f"img/{it['id']}.jpg"
         if os.path.exists(os.path.join(ROOT, local)):
             it['img'] = local
             continue
         src = it.get('img') if (it.get('img') or '').startswith('https://') else None
-        if not src and not is_product(it.get('url')):
+        if not src and (it.get('url') in shared or not is_product(it.get('url'))):
             continue
         if tried >= LIMIT:
             break
