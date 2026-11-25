@@ -92,6 +92,18 @@ def main():
         except Exception as e:
             print('villa:', it['n'], '-', e)
         time.sleep(0.6)
+    # sama mynd á mörgum vörum frá sama seljanda = "mynd vantar"-merki, ekki vörumynd
+    import hashlib
+    groups = collections.defaultdict(list)
+    for it in d['items']:
+        p = os.path.join(ROOT, it.get('img') or '')
+        if (it.get('img') or '').startswith('img/') and os.path.exists(p):
+            groups[(it['c'], hashlib.md5(open(p, 'rb').read()).hexdigest())].append(it)
+    for v in groups.values():
+        if len(v) >= 8:
+            for it in v:
+                os.remove(os.path.join(ROOT, it['img'])); it.pop('img')
+            print('fjarlægði sameiginlega mynd af', len(v), 'vörum')
     json.dump(d, open(DATA, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
     have = sum(1 for i in d['items'] if (i.get('img') or '').startswith('img/'))
     print(f'Sótti {done} nýjar myndir ({tried} reyndar). Samtals með mynd: {have}/{len(d["items"])}')

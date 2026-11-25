@@ -10,7 +10,7 @@ PRODUCT_RX = {
  'klosett': r'salern|kl[óo]sett|wc|skál|kassi', 'skolhn': r'skolhn|skolspj|(þ|th)r[ýy]sti|hnapp|front', 'bord': r'.', 'eldhus': r'.', 'bad': r'.'}
 APPL = ('ofnar', 'hellubord', 'hafar', 'uppthv', 'kaeli')
 JUNK = re.compile(r'vöruupplýsing|flokkayfirlit|^(skoða|sjá|bóka|opnunart|um okkur|hafa samband|tilboð|svartur|vefverslun|karfa|innskrá)|gjafabr', re.I)
-ACCESS = re.compile(r'hraðsuð|kanna|startsett|rekki|glasar|pizza|miðstöðv|olíufyllt|hitablás|vínkæl|motta|slanga|sturtubark|\bbarki|gúmm|haldari|veggfesting|vegghald|stútur|aukahlut|varahlut|brautir|kolasí|\bsía\b|síur|filter|hreinsi|pönnu|panna|pott(ur|ar)\b|grind|festing|tengistykki|framlenging|lok fyrir|sökkull|hurðarfesting|þéttilist|botnventil|lím\b|kísill|fúga|flísalím|undirlag|lista|rofi|tannbursti|ryksug', re.I)
+ACCESS = re.compile(r'silicon|kvoð|grunnur|\bdf\d|fúg|hraðsuð|kanna|startsett|rekki|glasar|pizza|miðstöðv|olíufyllt|hitablás|vínkæl|motta|slanga|sturtubark|\bbarki|gúmm|haldari|veggfesting|vegghald|stútur|aukahlut|varahlut|brautir|kolasí|\bsía\b|síur|filter|hreinsi|pönnu|panna|pott(ur|ar)\b|grind|festing|tengistykki|framlenging|lok fyrir|sökkull|hurðarfesting|þéttilist|botnventil|lím\b|kísill|fúga|flísalím|undirlag|lista|rofi|tannbursti|ryksug', re.I)
 NOPRICE = {'egill', 'birg', 'vidd', 'granit', 'steinl', 'scav', 'mood', 'hth', 'fri', 'ikea', 'parki', 'alfa'}
 OLD_JUNK = set(json.load(open(os.environ['OLDKEYS']))) if os.environ.get('OLDKEYS') else set()
 OLD_JUNK = {k for k in OLD_JUNK if any(k.startswith(c + '|') for c in ('alfa', 'byko', 'mood', 'parki', 'ormsson', 'rafland', 'isleifur', 'ikea', 'hth', 'fri', 'rafha', 'sminor', 'vidd'))
