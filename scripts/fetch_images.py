@@ -16,7 +16,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, 'data.json')
 IMG = os.path.join(ROOT, 'img')
 UA = {'User-Agent': 'Mozilla/5.0 (Efnisbok image fetcher; personal design catalogue)'}
-LIMIT = int(os.environ.get('LIMIT', '1200'))
+LIMIT = int(os.environ.get('LIMIT', '3000'))
 
 # slóðir sem eru flokkasíður, ekki einstakar vörur
 CATEGORY = re.compile(r'/(voruflokk|voruflokkar|categories|category|product-category|vorumerki)/|[?&]brand=|/page/\d+/?$')

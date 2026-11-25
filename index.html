@@ -188,7 +188,7 @@ const photo=it=>{const src=imgSrc(it);return src?`<div class="ph">${draw(it)}<im
 
 /* ---------- filtering ---------- */
 function inCat(it,c){if(c==='allt')return true;if(c==='veggfl')return it.k==='flisar'&&it.wall!==false;if(c==='golffl')return it.k==='flisar'&&it.floor;return it.k===c}
-function priceTxt(it){if(it.p==null)return '<div class="pr none">Verð í verslun / tilboð</div>';const pre=it.u==='frá'||it.u==='tilboð frá'?'frá ':'';return `<div class="pr">${pre}${fmt(it.p)} kr${it.u==='m²'?'<small> /m²</small>':''}</div>`}
+function priceTxt(it){if(it.p==null)return '<div class="pr none">Verð í verslun / tilboð</div>';const pre=it.u==='frá'||it.u==='tilboð frá'?'frá ':'';return `<div class="pr">${pre}${fmt(it.p)} kr${it.u==='m²'?'<small> /m²</small>':it.u==='pakki'?'<small> /pakka</small>':''}</div>`}
 function results(){
   const q=V.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
   let r=all().filter(it=>inCat(it,V.cat));

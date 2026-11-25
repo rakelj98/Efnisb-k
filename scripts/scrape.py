@@ -55,7 +55,7 @@ EXTRACT = r"""
     if (!name || badge.test(name)) { const t = txt.split('\n').map(x=>x.trim()).find(l => l.length > 3 && !badge.test(l) && !/kr/.test(l)); name = t || ''; }
     name = name.replace(/\s+/g, ' ').replace(/\s*Vnr:.*$/i, '').trim();
     if (!name || name.length < 3) continue;
-    const prices = [...txt.matchAll(/(?<![\d.])(\d{1,3}(?:\.\d{3})+|\d{3,7})(?:,-)?\s*kr/gi)].map(m => parseInt(m[1].replace(/[.\s]/g, '')));
+    const prices = [...txt.matchAll(/(?<![\d.])(\d{1,3}(?:\.\d{3})+|\d{3,7})(?:,-)?\s*kr(?![a-zA-ZÀ-ÿ])/gi)].map(m => parseInt(m[1].replace(/[.\s]/g, '')));
     const price = prices.length ? Math.min(...prices.filter(p => p > 50)) : null;
     const key = link;
     const prev = out.get(key);
@@ -121,7 +121,7 @@ def discover(page, t):
 
 def main():
     prev = json.load(open(OUT, encoding='utf-8')) if os.path.exists(OUT) else {}
-    res = dict(prev)
+    res = dict(prev) if os.environ.get('ONLY') else {}
     only = set(x for x in ONLY.split(',') if x)
     with sync_playwright() as p:
         br = p.chromium.launch()
