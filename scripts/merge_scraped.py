@@ -99,7 +99,7 @@ def merge(items, add, colour):
             cands[(i['c'], i['k'])].append(i)
     seen, stats, got = set(), Counter(), Counter()
     for key, prods in raw.items():
-        if key in OLD_JUNK or re.search(r'ofnar-og-lagnaefni|pizzaofn|grillvorur|midstodvar|hitunarbunadur|/contact|/page/|baeklingar|fylgiefni|wishlist|login|account|/20\d\d/', key):
+        if key in OLD_JUNK or re.search(r'ofnar-og-lagnaefni|pizzaofn|grillvorur|midstodvar|hitunarbunadur|/contact|/page/|baeklingar|fylgiefni|um-okkur|wishlist|login|account|/20\d\d/', key):
             continue
         for p in prods:
             url, n, k, c = p['url'].split('#')[0], (p.get('n') or '').strip(), p['k'], p['c']
@@ -108,13 +108,15 @@ def merge(items, add, colour):
             n = re.sub(r'\s*Vnr:.*$', '', n).strip(' .-')
             if re.match(r'^(sérpöntun|tilboð|nýtt|uppselt|.*afsl[áa]tt.*)$', n, re.I):
                 n = url.rstrip('/').split('/')[-1].replace('-', ' ').strip().capitalize()
-            if c == 'tengi' and k == 'bad':
+            if k == 'eldhus' and 'badherbergi' in key:
+                k = 'bad'
+            if c == 'tengi' and k == 'bad' and '/sturta/' in key:
                 seg = url.rstrip('/').split('/')[-2]
                 if seg not in TENGI_STURTA:
                     continue
                 k, forced = TENGI_STURTA[seg]
             else:
-                forced = None
+                forced = 'Baðinnrétting' if (k == 'bad' and 'innretting' in key) else None
             if ACCESS.search(n) and k not in ('bord', 'eldhus'):
                 continue
             n = re.sub(r'\s*vörumynd$', '', n, flags=re.I).strip()
@@ -122,7 +124,7 @@ def merge(items, add, colour):
                 page = urllib.parse.unquote(key.split('|', 2)[2]).lower()
                 other = any(re.search(PRODUCT_RX[o], n.lower()) for o in APPL if o != k)
                 food = re.search(r'sult|kaffi|krydd|tannbursti|ryksug|þvottavél(?!.*upp)|þurrkar|sjónvarp|hátalar|ljós|glas|bolli|diskur|hnífa|bók', n.lower())
-                if c == 'rafha' or not (p.get('p') and re.search(PRODUCT_RX[k], page) and not other and not food):
+                if c == 'rafha' or not ((p.get('p') or c in NOPRICE) and re.search(PRODUCT_RX[k], page) and not other and not food):
                     continue
             price = p.get('p') if (p.get('p') or 0) >= 500 else None
             if price is None and c not in NOPRICE:
@@ -156,7 +158,7 @@ def merge(items, add, colour):
     # fjarlægja gamla staðgengla þar sem nú eru komnar margar alvöru vörur með myndum
     drop = 0
     for (c, k), lst in cands.items():
-        if got[(c, k)] >= 8:
+        if got[(c, k)] >= max(8, 0.8 * len(lst)):
             for it in lst:
                 if not it.get('_m') and not it.get('img'):
                     it['_drop'] = 1; drop += 1

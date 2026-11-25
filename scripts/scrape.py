@@ -70,12 +70,13 @@ EXTRACT = r"""
 
 
 def scroll(page):
-    last = 0
-    for _ in range(25):
-        page.mouse.wheel(0, 4000)
-        page.wait_for_timeout(500)
+    last, same = 0, 0
+    for _ in range(40):
+        page.mouse.wheel(0, 3000)
+        page.wait_for_timeout(900)
         h = page.evaluate('document.body.scrollHeight')
-        if h == last:
+        same = same + 1 if h == last else 0
+        if same >= 3:
             # reyna "sýna meira" takka
             btn = page.locator('button:has-text("Sýna fleiri"), button:has-text("Sjá fleiri"), button:has-text("Hlaða fleiri"), a:has-text("Sýna fleiri"), button:has-text("Load more")')
             if btn.count():
