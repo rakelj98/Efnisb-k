@@ -16,7 +16,7 @@ EXTRACT = r"""
 () => {
   const host = location.host.replace(/^www\./,'');
   const abs = u => { try { return new URL(u, location.href).href } catch(e) { return '' } };
-  const bad = /logo|icon|sprite|placeholder|loader|spinner|flag|payment|banner|facebook|instagram|\.svg/i;
+  const bad = /\/category\/|logo|icon|sprite|placeholder|loader|spinner|flag|payment|banner|facebook|instagram|\.svg/i;
   const pick = img => {
     let s = img.currentSrc || img.getAttribute('data-src') || img.getAttribute('data-lazy-src') || img.getAttribute('data-original') || img.src || '';
     const ss = img.getAttribute('data-srcset') || img.getAttribute('srcset');
@@ -50,9 +50,12 @@ EXTRACT = r"""
     const txt = (card.innerText || '').replace(/\s+\n/g, '\n').trim();
     const head = card.querySelector('h1,h2,h3,h4,.product-name,.product-title,.woocommerce-loop-product__title,.product-item-link,[class*=title],[class*=name]');
     let name = (head && head.innerText.trim()) || (img.alt || '').trim() || txt.split('\n').find(l => l.length > 3 && !/kr/.test(l)) || '';
-    name = name.replace(/\s+/g, ' ').trim();
+    const badge = /^(sérpöntun|tilboð|nýtt|uppselt|útsala|afsláttur|.*% afsl.*|á lager|vefverð|black friday|svartur)$/i;
+    if (badge.test(name.trim())) name = (img.alt || '').trim();
+    if (!name || badge.test(name)) { const t = txt.split('\n').map(x=>x.trim()).find(l => l.length > 3 && !badge.test(l) && !/kr/.test(l)); name = t || ''; }
+    name = name.replace(/\s+/g, ' ').replace(/\s*Vnr:.*$/i, '').trim();
     if (!name || name.length < 3) continue;
-    const prices = [...txt.matchAll(/(\d{1,3}(?:[.\s]\d{3})+|\d{3,7})\s*kr/gi)].map(m => parseInt(m[1].replace(/[.\s]/g, '')));
+    const prices = [...txt.matchAll(/(?<![\d.])(\d{1,3}(?:\.\d{3})+|\d{3,7})(?:,-)?\s*kr/gi)].map(m => parseInt(m[1].replace(/[.\s]/g, '')));
     const price = prices.length ? Math.min(...prices.filter(p => p > 50)) : null;
     const key = link;
     const prev = out.get(key);
@@ -84,6 +87,38 @@ def scroll(page):
         last = h
 
 
+KW = {
+ 'ofnar': r'ofn', 'hellubord': r'hellub|span', 'hafar': r'h[áa]f|vift|gufugleyp', 'uppthv': r'upp(þ|th)v|uppvask',
+ 'kaeli': r'k[æa]e?li|[íi]ssk[áa]p|frysti', 'flisar': r'fl[íi]s|m[óo]sa[íi]k', 'parket': r'parket|v[íi]nyl',
+ 'vaskar': r'handlaug(?!art)|handlaugar|vask', 'bt_vask': r'handlaugart|bl[öo]ndunart', 'bt_sturta': r'sturtut|sturtuset',
+ 'klosett': r'salern|kl[óo]sett|wc', 'skolhn': r'skolhn|skolspj|(þ|th)r[ýy]stisp', 'bord': r'bor(ð|d)pl', 'eldhus': r'eldh[úu]s|innr[ée]tting'}
+
+LINKS = r"""
+(re) => { const R = new RegExp(re, 'i'); const host = location.host;
+  return [...document.querySelectorAll('a[href]')].map(a => ({t:(a.innerText||a.getAttribute('title')||'').trim().slice(0,60), h:a.href.split('#')[0], nav: !!a.closest('nav,header,.menu,[class*=menu],[class*=nav]')}))
+   .filter(x => { try { return new URL(x.h).host === host } catch(e) { return false } })
+   .filter(x => R.test(x.t) || R.test(decodeURIComponent(new URL(x.h).pathname.split('/').filter(Boolean).pop()||'')));
+}
+"""
+
+
+def discover(page, t):
+    page.goto(t['home'], wait_until='domcontentloaded', timeout=45000)
+    page.wait_for_timeout(3000)
+    out = []
+    for k in t['cats']:
+        ls = page.evaluate(LINKS, KW[k])
+        seen, pick = set(), []
+        for x in sorted(ls, key=lambda x: (not x['nav'], len(x['h']))):
+            if x['h'] in seen or re.search(r'/(product|vara|vorur|p)/[^/]+/?$', x['h']) and not x['nav']:
+                continue
+            seen.add(x['h']); pick.append(x['h'])
+        print(f"  fann {t['c']}/{k}: {pick[:int(t.get('n', 5))]}")
+        for u in pick[:int(t.get('n', 5))]:
+            out.append({**{a: b for a, b in t.items() if a not in ('home', 'cats', 'n')}, 'k': k, 'url': u, **t['cats'][k]})
+    return out
+
+
 def main():
     prev = json.load(open(OUT, encoding='utf-8')) if os.path.exists(OUT) else {}
     res = dict(prev)
@@ -93,7 +128,16 @@ def main():
         ctx = br.new_context(locale='is-IS', viewport={'width': 1400, 'height': 1000},
                              user_agent='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36')
         page = ctx.new_page()
+        todo = []
         for t in TARGETS:
+            if only and t['c'] not in only:
+                continue
+            if 'home' in t:
+                try: todo += discover(page, t)
+                except Exception as e: print('  villa í leit', t['home'], str(e).splitlines()[0])
+            else:
+                todo.append(t)
+        for t in todo:
             if only and t['c'] not in only:
                 continue
             key = f"{t['c']}|{t['k']}|{t['url']}"
@@ -116,6 +160,8 @@ def main():
                 before = len(got)
                 for it in r['items']:
                     got.setdefault(it['url'], it)
+                if not r['items']:
+                    print('   tómt:', page.title()[:60], '|', page.url, '| myndir:', page.evaluate('document.images.length'))
                 print(f"{t['c']:9} {t['k']:9} síða {n+1}: {len(r['items'])} vörur (+{len(got)-before})  {url}")
                 if len(got) == before and n > 0:
                     break
