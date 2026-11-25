@@ -57,9 +57,10 @@ EXTRACT = r"""
     if (!name || name.length < 3) continue;
     const prices = [...txt.matchAll(/(?<![\d.])(\d{1,3}(?:\.\d{3})+|\d{3,7})(?:,-)?\s*kr(?![a-zA-ZÀ-ÿ])/gi)].map(m => parseInt(m[1].replace(/[.\s]/g, '')));
     const price = prices.length ? Math.min(...prices.filter(p => p > 50)) : null;
+    const m2 = [...txt.matchAll(/(?<![\d.])(\d{1,3}(?:\.\d{3})+|\d{3,7})(?:,-)?\s*kr\.?\s*\/\s*m(2|²)/gi)].map(m => parseInt(m[1].replace(/\./g, '')));
     const key = link;
     const prev = out.get(key);
-    if (!prev || (r.width > (prev._w || 0))) out.set(key, { n: name, url: link, img: src, p: isFinite(price) ? price : null, _w: r.width });
+    if (!prev || (r.width > (prev._w || 0))) out.set(key, { n: name, url: link, img: src, p: isFinite(price) ? price : null, pm2: m2.length ? Math.min(...m2) : null, _w: r.width });
   }
   // næsta síða
   let next = document.querySelector('a[rel=next], link[rel=next], a.next, .pagination .next a, a.next.page-numbers, li.pages-item-next a');

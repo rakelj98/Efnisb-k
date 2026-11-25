@@ -10,7 +10,7 @@ PRODUCT_RX = {
  'klosett': r'salern|kl[óo]sett|wc|skál|kassi', 'skolhn': r'skolhn|skolspj|(þ|th)r[ýy]sti|hnapp|front', 'bord': r'.', 'eldhus': r'.', 'bad': r'.'}
 APPL = ('ofnar', 'hellubord', 'hafar', 'uppthv', 'kaeli')
 JUNK = re.compile(r'vöruupplýsing|flokkayfirlit|^(skoða|sjá|bóka|opnunart|um okkur|hafa samband|tilboð|svartur|vefverslun|karfa|innskrá)|gjafabr', re.I)
-ACCESS = re.compile(r'silicon|kvoð|grunnur|\bdf\d|fúg|hraðsuð|kanna|startsett|rekki|glasar|pizza|miðstöðv|olíufyllt|hitablás|vínkæl|motta|slanga|sturtubark|\bbarki|gúmm|haldari|veggfesting|vegghald|stútur|aukahlut|varahlut|brautir|kolasí|\bsía\b|síur|filter|hreinsi|pönnu|panna|pott(ur|ar)\b|grind|festing|tengistykki|framlenging|lok fyrir|sökkull|hurðarfesting|þéttilist|botnventil|lím\b|kísill|fúga|flísalím|undirlag|lista|rofi|tannbursti|ryksug', re.I)
+ACCESS = re.compile(r'gólflist|golflist|\blisti|listar\b|kíttisp|kittisp|spinni|þröskuld|undirlag|parketlím|fitusí|kolasí|mótorsí|microsí|míkró|\bsía|pera\b|ábyrgð|skynjari|pottasett|potta sett|teppan|grill|tengilist|rafmagnsofn|olíuofn|gasofn|hitari|hitablás|bökunarplat|bokunarplat|ofnskúff|skúffa|kveikjar|\bfata\b|límband|rúðuvökv|frostlög|ofnhreins|ofnhansk|ofnvettl|bakki|bakka|plata\b|silicon|kvoð|grunnur|\bdf\d|fúg|hraðsuð|kanna|startsett|rekki|glasar|pizza|miðstöðv|olíufyllt|hitablás|vínkæl|motta|slanga|sturtubark|\bbarki|gúmm|haldari|veggfesting|vegghald|stútur|aukahlut|varahlut|brautir|kolasí|\bsía\b|síur|filter|hreinsi|pönnu|panna|pott(ur|ar)\b|grind|festing|tengistykki|framlenging|lok fyrir|sökkull|hurðarfesting|þéttilist|botnventil|lím\b|kísill|fúga|flísalím|undirlag|lista|rofi|tannbursti|ryksug', re.I)
 NOPRICE = {'egill', 'birg', 'vidd', 'granit', 'steinl', 'scav', 'mood', 'hth', 'fri', 'ikea', 'parki', 'alfa'}
 OLD_JUNK = set(json.load(open(os.environ['OLDKEYS']))) if os.environ.get('OLDKEYS') else set()
 OLD_JUNK = {k for k in OLD_JUNK if any(k.startswith(c + '|') for c in ('alfa', 'byko', 'mood', 'parki', 'ormsson', 'rafland', 'isleifur', 'ikea', 'hth', 'fri', 'rafha', 'sminor', 'vidd'))
@@ -103,6 +103,8 @@ def merge(items, add, colour):
             continue
         for p in prods:
             url, n, k, c = p['url'].split('#')[0], (p.get('n') or '').strip(), p['k'], p['c']
+            if c == 'bauhaus' and k in APPL:
+                continue
             if url in seen or url in cat_urls or not n or JUNK.search(n):
                 continue
             n = re.sub(r'\s*Vnr:.*$', '', n).strip(' .-')
@@ -126,7 +128,11 @@ def merge(items, add, colour):
                 food = re.search(r'sult|kaffi|krydd|tannbursti|ryksug|þvottavél(?!.*upp)|þurrkar|sjónvarp|hátalar|ljós|glas|bolli|diskur|hnífa|bók', n.lower())
                 if c == 'rafha' or not ((p.get('p') or c in NOPRICE) and re.search(PRODUCT_RX[k], page) and not other and not food):
                     continue
-            price = p.get('p') if (p.get('p') or 0) >= 500 else None
+            price = p.get('p') if (p.get('p') or 0) >= 500 and c not in ('vidd',) else None
+            if k in ('flisar', 'parket') and p.get('pm2'):
+                price, p['u'] = p['pm2'], 'm²'
+            elif c == 'husa' and k in ('flisar', 'parket'):
+                price = None
             if price is None and c not in NOPRICE:
                 continue
             seen.add(url)
@@ -150,7 +156,7 @@ def merge(items, add, colour):
                 stats['parað við eldri vöru'] += 1; got[(c, k)] += 1
                 continue
             w, h = dims(n)
-            u = 'm²' if (p.get('u') == 'm²' and c in ('parketis', 'egill', 'birg', 'parki', 'alfa', 'husa')) else ('pakki' if re.search(r'm²/?\s*kr|m2/krt|\d,\d+\s*m²|\d,\d+\s*m2', n) else 'stk')
+            u = 'm²' if (p.get('pm2') or (p.get('u') == 'm²' and c in ('parketis', 'egill', 'birg', 'parki', 'alfa'))) else ('pakki' if re.search(r'm²/?\s*kr|m2/krt|\d,\d+\s*m²|\d,\d+\s*m2', n) else 'stk')
             add(k, n, c, price, u=u, s=forced or sub_for(k, n, url), b=n.split()[0].capitalize() if n else '', url=url, img=img,
                 x='Sótt af vef seljanda – staðfestu verð og einingu', w=w if k == 'flisar' else None, h=h if k == 'flisar' else None,
                 wall=p.get('wall'), floor=p.get('floor'), wid=int(w) if (k in ('vaskar',) and w) else None, col=FINCOL(n) if k in ('bt_vask','bt_sturta','skolhn') else None)
